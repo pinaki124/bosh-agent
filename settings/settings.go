@@ -23,14 +23,15 @@ const (
 )
 
 type Settings struct {
-	AgentID   string    `json:"agent_id"`
-	Blobstore Blobstore `json:"blobstore"`
-	Disks     Disks     `json:"disks"`
-	Env       Env       `json:"env"`
-	Networks  Networks  `json:"networks"`
-	NTP       []string  `json:"ntp"`
-	Mbus      string    `json:"mbus"`
-	VM        VM        `json:"vm"`
+	AgentID         string    `json:"agent_id"`
+	Blobstore       Blobstore `json:"blobstore"`
+	Disks           Disks     `json:"disks"`
+	Env             Env       `json:"env"`
+	Networks        Networks  `json:"networks"`
+	NTP             []string  `json:"ntp"`
+	Mbus            string    `json:"mbus"`
+	AlternativeMbus string    `json:"alternative_mbus"`
+	VM              VM        `json:"vm"`
 }
 
 type UpdateSettings struct {
@@ -153,6 +154,10 @@ func (s Settings) GetMbusURL() string {
 	}
 
 	return s.Mbus
+}
+
+func (s Settings) GetAlternativeMbusURL() string {
+	return s.AlternativeMbus
 }
 
 func (s Settings) GetBlobstore() Blobstore {

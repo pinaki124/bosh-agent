@@ -17,18 +17,19 @@ import (
 const httpsDispatcherLogTag = "HTTPS Dispatcher"
 
 type HTTPSDispatcher struct {
-	httpServer                  *http.Server
-	mux                         *http.ServeMux
-	keyPair                     settings.CertKeyPair
-	listener                    net.Listener
-	logger                      boshlog.Logger
-	baseURL                     *url.URL
-	expectedAuthorizationHeader string
+	httpServer                             *http.Server
+	mux                                    *http.ServeMux
+	keyPair                                settings.CertKeyPair
+	listener                               net.Listener
+	logger                                 boshlog.Logger
+	baseURL                                *url.URL
+	expectedAuthorizationHeader            string
+	alternativeExpectedAuthorizationHeader string
 }
 
 type HTTPHandlerFunc func(writer http.ResponseWriter, request *http.Request)
 
-func NewHTTPSDispatcher(baseURL *url.URL, keyPair settings.CertKeyPair, logger boshlog.Logger) *HTTPSDispatcher {
+func NewHTTPSDispatcher(baseURL *url.URL, alternativeBaseURL *url.URL, keyPair settings.CertKeyPair, logger boshlog.Logger) *HTTPSDispatcher {
 	tlsConfig := &tls.Config{
 		// SSLv3 is insecure due to BEAST and POODLE attacks
 		MinVersion: tls.VersionTLS10,
@@ -52,22 +53,28 @@ func NewHTTPSDispatcher(baseURL *url.URL, keyPair settings.CertKeyPair, logger b
 	mux := http.NewServeMux()
 	httpServer.Handler = mux
 
+	expectedAuthorizationHeader := getAuthorizationHeader(baseURL)
+	alternativeExpectedAuthorizationHeader := getAuthorizationHeader(alternativeBaseURL)
+
+	return &HTTPSDispatcher{
+		httpServer:                             httpServer,
+		mux:                                    mux,
+		keyPair:                                keyPair,
+		logger:                                 logger,
+		baseURL:                                baseURL,
+		expectedAuthorizationHeader:            expectedAuthorizationHeader,
+		alternativeExpectedAuthorizationHeader: alternativeExpectedAuthorizationHeader,
+	}
+}
+
+func getAuthorizationHeader(baseURL *url.URL) string {
 	expectedUsername := baseURL.User.Username()
 	expectedPassword, _ := baseURL.User.Password()
 	auth := fmt.Sprintf("%s:%s", expectedUsername, expectedPassword)
 	encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
 	expectedAuthorizationHeader := fmt.Sprintf("Basic %s", encodedAuth)
-
-	return &HTTPSDispatcher{
-		httpServer:                  httpServer,
-		mux:                         mux,
-		keyPair:                     keyPair,
-		logger:                      logger,
-		baseURL:                     baseURL,
-		expectedAuthorizationHeader: expectedAuthorizationHeader,
-	}
+	return expectedAuthorizationHeader
 }
-
 func (h *HTTPSDispatcher) Start() error {
 	tcpListener, err := net.Listen("tcp", h.baseURL.Host)
 	if err != nil {
@@ -99,7 +106,8 @@ func (h *HTTPSDispatcher) Stop() {
 }
 
 func (h *HTTPSDispatcher) requestNotAuthorized(request *http.Request) bool {
-	return h.constantTimeEquals(h.expectedAuthorizationHeader, request.Header.Get("Authorization"))
+	return h.constantTimeEquals(h.expectedAuthorizationHeader, request.Header.Get("Authorization")) &&
+		h.constantTimeEquals(h.alternativeExpectedAuthorizationHeader, request.Header.Get("Authorization"))
 }
 
 func (h *HTTPSDispatcher) constantTimeEquals(a, b string) bool {

@@ -42,6 +42,7 @@ func (p HandlerProvider) Get(
 	}
 
 	mbusURL, err := url.Parse(p.settingsService.GetSettings().GetMbusURL())
+	alternativeMbusURL, err := url.Parse(p.settingsService.GetSettings().GetAlternativeMbusURL())
 	if err != nil {
 		err = bosherr.WrapError(err, "Parsing handler URL")
 		return
@@ -53,7 +54,7 @@ func (p HandlerProvider) Get(
 		handler = NewNatsHandler(p.settingsService, natsClient, p.logger, platform)
 	case "https":
 		mbusKeyPair := p.settingsService.GetSettings().Env.Bosh.Mbus.Cert
-		handler = NewHTTPSHandler(mbusURL, mbusKeyPair, blobManager, p.logger, p.auditLogger)
+		handler = NewHTTPSHandler(mbusURL, alternativeMbusURL, mbusKeyPair, blobManager, p.logger, p.auditLogger)
 	default:
 		err = bosherr.Errorf("Message Bus Handler with scheme %s could not be found", mbusURL.Scheme)
 	}

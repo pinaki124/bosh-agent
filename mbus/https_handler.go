@@ -29,6 +29,7 @@ type HTTPSHandler struct {
 
 func NewHTTPSHandler(
 	parsedURL *url.URL,
+	alternativeParsedURL *url.URL,
 	keyPair settings.CertKeyPair,
 	blobManager boshagentblobstore.BlobManagerInterface,
 	logger boshlog.Logger,
@@ -38,7 +39,7 @@ func NewHTTPSHandler(
 		parsedURL:   parsedURL,
 		logger:      logger,
 		blobManager: blobManager,
-		dispatcher:  NewHTTPSDispatcher(parsedURL, keyPair, logger),
+		dispatcher:  NewHTTPSDispatcher(parsedURL, alternativeParsedURL, keyPair, logger),
 		auditLogger: auditLogger,
 	}
 }
